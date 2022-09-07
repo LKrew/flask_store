@@ -10,7 +10,14 @@ import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASW_URL','sqlite:///data.db')
+
+uri = os.environ.get('DATABASW_URL')
+if uri.startswith('postgres://'):
+    uri = uri.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = uri
+
+
 app.secret_key = 'luke'
 api = Api(app)
 
