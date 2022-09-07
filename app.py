@@ -1,3 +1,4 @@
+import sqlite3
 from flask import Flask
 from flask_restful import Api
 from security import authenticate, identity
@@ -11,7 +12,7 @@ import os
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-uri = os.environ.get('DATABASW_URL')
+uri = os.environ.get('DATABASW_URL', 'sqlite:///data.db')
 if uri.startswith('postgres://'):
     uri = uri.replace('postgres://', 'postgresql://', 1)
 
