@@ -12,7 +12,7 @@ import os
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-uri = os.environ.get('HEROKU_DATABASE_URL')
+uri = os.environ.get('HEROKU_DATABASE_URL', 'sqlite:///data.db')
 if uri.startswith('postgres://'):
     uri = uri.replace('postgres://', 'postgresql://', 1)
 
