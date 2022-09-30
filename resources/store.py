@@ -1,34 +1,45 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required
 from models.store import StoreModel
+from schemas.store import StoreSchema
 
+STORE_NOT_FOUND = "Store Not Found"
+ERROR_INSERT = "An Error Occured While Inserting Store"
+STORE_DELETED = "Store Deleted"
+NAME_ALREADY_EXISTS = "A store with the name '{}' already exists"
+
+store_schema = StoreSchema()
+store_list_schema = StoreSchema(many=True)
 
 class Store(Resource):
 
-    def get(self, name):
+    @classmethod
+    def get(cls, name: str):
         store = StoreModel.find_by_name(name)
         if store:
-            return store.json()
-        return {'message' : 'Store not found'}, 404
-
-    def post(self, name):
+            return store_schema.dump(store), 200
+        return {'message' : STORE_NOT_FOUND}, 404
+    @classmethod
+    def post(cls, name: str):
         if StoreModel.find_by_name(name):
-            return {'message' : "a store with {} name already exists".format(name)}, 400
+            return {'message' : NAME_ALREADY_EXISTS.format(name)}, 400
         
-        store = StoreModel(name)
+        store = StoreModel(name=name)
         try:
             store.save_to_db()
         except:
-            return {'message' : 'An error occured creating a store'}, 500
-        return store.json(), 201
+            return {'message' : ERROR_INSERT}, 500
+        return store_schema.dump(store), 201
 
-    def delete(self, name):
+    @classmethod
+    def delete(cls, name: str):
         store = StoreModel.find_by_name(name)
         if store:
             store.delete_from_db()
-        return {'message' : 'store deleted'}
+        return {'message' : STORE_DELETED}, 200
 
 
 class StoreList(Resource):
-    def get(self):
-        return {'store' : [x.json() for x in StoreModel.find_all()]}
+    @classmethod
+    def get(cls):
+        return {'stores' : store_list_schema.dump(StoreModel.find_all()) }, 200

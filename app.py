@@ -6,27 +6,23 @@ from resources.store import Store, StoreList
 from flask_jwt_extended import JWTManager
 from db import db
 from blacklist import BLACKLIST
+from ma import ma
+from marshmallow import ValidationError
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
-# uri = os.environ.get('HEROKU_DATABASE_URL', 'sqlite:///data.db')
-# if uri.startswith('postgres://'):
-#     uri = uri.replace('postgres://', 'postgresql://', 1)
-# app.config['SQLALCHEMY_DATABASE_URI'] = uri
-
 app.secret_key = 'luke'
 api = Api(app)
 
-jwt = JWTManager(app)
+@app.errorhandler(ValidationError)
+def handle_marshmallow_validation(err):
+    return jsonify(err.messages), 200
 
-@jwt.additional_claims_loader
-def add_claims_to_jwt(identity):
-    if identity == 1:
-        return {'is_admin' : True}
-    return {'is_admin' : False}
+jwt = JWTManager(app)
 
 @jwt.token_in_blocklist_loader
 def check_token_blacklist(headers, payload):
@@ -36,34 +32,6 @@ def check_token_blacklist(headers, payload):
 @app.before_first_request
 def create_tables():
     db.create_all()
-
-@jwt.expired_token_loader
-def expired_token_callback():
-    return {
-        'description' : 'Token Expired',
-        'error' : 'token_expired'
-    },401
-
-@jwt.unauthorized_loader
-def invalid_token_callback(error):
-    return jsonify({
-        'description' : 'signature verification failed',
-        'error' : 'invalid_token'
-    }),401
-
-@jwt.needs_fresh_token_loader
-def token_not_freshh_callback(headers, payload):
-    return jsonify({
-        'description' : 'token is not fresh',
-        'error' : 'fresh_token_required'
-    }),401
-
-@jwt.revoked_token_loader
-def revoked_token_callback(headers, payload):
-    return jsonify({
-        'description' : 'Token has been revoked',
-        'error' : 'revoked_token'
-    }),401
 
 api.add_resource(Item, '/item/<string:name>')
 api.add_resource(ItemList, '/items')
@@ -78,5 +46,5 @@ api.add_resource(UserLogout, '/logout')
 if __name__=='__main__':
 
     db.init_app(app)
-
+    ma.init_app(app)
     app.run(port=5000, debug=True)
